@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  workflow_dispatch:
+    inputs:
+      outcome:
+        description: Forced job outcome
+        required: true
+        default: success
+        type: choice
+        options:
+          - success
+          - failure
+      sleep_seconds:
+        description: Simulated job duration (seconds)
+        required: true
+        default: "10"
+        type: string
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 14 * * 1"
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Simulate CI workload
+        env:
+          OUTCOME: ${{ github.event_name == 'workflow_dispatch' && inputs.outcome || 'success' }}
+          SLEEP: ${{ github.event_name == 'workflow_dispatch' && inputs.sleep_seconds || '10' }}
+        run: |
+          sleep "$SLEEP"
+          if [ "$OUTCOME" = "failure" ]; then
+            echo "Simulated failure"
+            exit 1
+          fi
+          echo "Simulated success"
